@@ -4,8 +4,8 @@
 
 ![image](https://user-images.githubusercontent.com/17078589/107857220-05ecef00-6e68-11eb-9fa0-506b32052dba.png)
 
-[![Build Status](https://github.com/windowsair/wireless-esp8266-dap/workflows/build/badge.svg?branch=master)](https://github.com/windowsair/wireless-esp8266-dap/actions?query=branch%3Amaster) master　
-[![Build Status](https://github.com/windowsair/wireless-esp8266-dap/workflows/build/badge.svg?branch=develop)](https://github.com/windowsair/wireless-esp8266-dap/actions?query=branch%3Adevelop) develop
+[![Build Status](https://github.com/windowsair/wireless-esp8266-dap/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/windowsair/wireless-esp8266-dap/actions/workflows/main.yml) master　
+[![Build Status](https://github.com/windowsair/wireless-esp8266-dap/actions/workflows/main.yml/badge.svg?branch=develop)](https://github.com/windowsair/wireless-esp8266-dap/actions/workflows/main.yml) develop
 
 [![](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/windowsair/wireless-esp8266-dap/LICENSE)　[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg?style=flat-square)](https://github.com/windowsair/wireless-esp8266-dap/pulls)　[![%e2%9d%a4](https://img.shields.io/badge/made%20with-%e2%9d%a4-ff69b4.svg?style=flat-square)](https://github.com/windowsair/wireless-esp8266-dap)
 
@@ -27,6 +27,7 @@
     - [x] ESP8266/8285
     - [x] ESP32
     - [x] ESP32C3
+    - [x] ESP32S3
 
 2. 支持的调试接口：
     - [x] SWD
@@ -40,7 +41,10 @@
 
 5. 其它
     - [x] 通过SPI接口加速的SWD协议（最高可达40MHz）
-    - [x] 支持[elaphureLink](https://github.com/windowsair/elaphureLink)，无需驱动的快速Keil调试
+    - [x] 支持 [elaphureLink](https://github.com/windowsair/elaphureLink)，无需驱动的快速Keil 调试
+    - [x] 支持 [elaphure-dap.js](https://github.com/windowsair/elaphure-dap.js)，网页端的 ARM Cortex-M 设备固件烧录调试
+    - [x] 支持 [OpenOCD-elaphureLink](https://github.com/windowsair/openocd-elaphurelink), 无需 USBIP!
+    - [x] 支持 OpenOCD/pyOCD
     - [x] ...
 
 ## 连接你的开发板
@@ -180,6 +184,32 @@
 
 
 </details>
+
+<details>
+<summary>ESP32S3</summary>
+
+| SWD            |        |
+|----------------|--------|
+| SWCLK          | GPIO12 |
+| SWDIO          | GPIO11 |
+| TVCC           | 3V3    |
+| GND            | GND    |
+
+
+--------------
+
+
+| JTAG               |        |
+|--------------------|--------|
+| TCK                | GPIO12 |
+| TMS                | GPIO11 |
+| TDI                | GPIO10 |
+| TDO                | GPIO9  |
+| nTRST \(optional\) | GPIO14 |
+| nRESET             | GPIO13 |
+| TVCC               | 3V3    |
+| GND                | GND    |
+
 
 
 ----
@@ -336,17 +366,13 @@ idf.py -p /dev/ttyS5 flash
 ### 对于OpenOCD用户
 
 这个项目最初是为在Keil上运行而设计的，但现在你也可以在OpenOCD上通过它来烧录程序。
-注意，如果你想使用40MHz的SPI加速器，你需要在连接目标设备后指定速度，否则会在开始时失败。
 
 ```bash
-# 在使用flash指令前需要先运行：
-> adapter speed 10000
-
 > halt
 > flash write_image [erase] [unlock] filename [offset] [type]
 ```
 
-> Keil的操作时序与OpenOCD的有些不同。例如，OpenOCD在读取 "IDCODE "寄存器之前缺少SWD线复位序列。
+> 现已支持 pyOCD
 
 ### 系统 OTA
 
@@ -403,6 +429,14 @@ esptool.py -p (PORT) flash_id
 
 当TCP连接建立后，ESP芯片将尝试解决首次发送的文本。当文本是一个有效的波特率时，转发器就会切换到该波特率。例如，发送ASCII文本`115200`会将波特率切换为115200。
 由于性能原因，该功能默认不启用。你可以修改 [wifi_configuration.h](main/wifi_configuration.h) 来打开它。
+
+### elaphure-dap.js
+
+对于 ESP8266 ，该功能默认关闭。可以在 menuconfig 中打开它：
+
+```
+CONFIG_USE_WEBSOCKET_DAP=y
+```
 
 ----
 

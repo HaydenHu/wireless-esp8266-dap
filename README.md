@@ -3,8 +3,8 @@
 ![image](https://user-images.githubusercontent.com/17078589/107857220-05ecef00-6e68-11eb-9fa0-506b32052dba.png)
 
 
-[![Build Status](https://github.com/windowsair/wireless-esp8266-dap/workflows/build/badge.svg?branch=master)](https://github.com/windowsair/wireless-esp8266-dap/actions?query=branch%3Amaster) master　
-[![Build Status](https://github.com/windowsair/wireless-esp8266-dap/workflows/build/badge.svg?branch=develop)](https://github.com/windowsair/wireless-esp8266-dap/actions?query=branch%3Adevelop) develop
+[![Build Status](https://github.com/windowsair/wireless-esp8266-dap/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/windowsair/wireless-esp8266-dap/actions/workflows/main.yml) master　
+[![Build Status](https://github.com/windowsair/wireless-esp8266-dap/actions/workflows/main.yml/badge.svg?branch=develop)](https://github.com/windowsair/wireless-esp8266-dap/actions/workflows/main.yml) develop
 
 [![](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/windowsair/wireless-esp8266-dap/LICENSE)　[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg?style=flat-square)](https://github.com/windowsair/wireless-esp8266-dap/pulls)　[![%e2%9d%a4](https://img.shields.io/badge/made%20with-%e2%9d%a4-ff69b4.svg?style=flat-square)](https://github.com/windowsair/wireless-esp8266-dap)
 
@@ -30,6 +30,7 @@ For Keil users, we now also support [elaphureLink](https://github.com/windowsair
     - [x] ESP8266/8285
     - [x] ESP32
     - [x] ESP32C3
+    - [x] ESP32S3
 
 2. Debug Communication Mode
     - [x] SWD
@@ -45,6 +46,9 @@ For Keil users, we now also support [elaphureLink](https://github.com/windowsair
 5. More..
     - [x] SWD protocol based on SPI acceleration (Up to 40MHz)
     - [x] Support for [elaphureLink](https://github.com/windowsair/elaphureLink), fast Keil debug without drivers
+    - [x] Support for [elaphure-dap.js](https://github.com/windowsair/elaphure-dap.js), online ARM Cortex-M firmware flash
+    - [x] Support for [OpenOCD-elaphureLink](https://github.com/windowsair/openocd-elaphurelink), Get rid of USBIP!
+    - [x] Support for OpenOCD/pyOCD
     - [x] ...
 
 
@@ -190,6 +194,34 @@ There is built-in ipv4 only mDNS server. You can access the device using `dap.lo
 
 </details>
 
+
+<details>
+<summary>ESP32S3</summary>
+
+| SWD            |        |
+|----------------|--------|
+| SWCLK          | GPIO12 |
+| SWDIO          | GPIO11 |
+| TVCC           | 3V3    |
+| GND            | GND    |
+
+
+--------------
+
+
+| JTAG               |        |
+|--------------------|--------|
+| TCK                | GPIO12 |
+| TMS                | GPIO11 |
+| TDI                | GPIO10 |
+| TDO                | GPIO9  |
+| nTRST \(optional\) | GPIO14 |
+| nRESET             | GPIO13 |
+| TVCC               | 3V3    |
+| GND                | GND    |
+
+
+</details>
 
 ----
 
@@ -355,18 +387,12 @@ When you select max clock, we will take the following actions:
 
 This project was originally designed to run on Keil, but now you can also perform firmware flash on OpenOCD.
 
-Note that if you want to use a 40MHz SPI acceleration, you need to specify the speed after the target device is connected, otherwise it will fail with the beginning.
-
 ```bash
-# Run before approaching the flash command
-> adapter speed 10000
-
 > halt
 > flash write_image [erase] [unlock] filename [offset] [type]
 ```
 
-> Keil's timing handling is somewhat different from OpenOCD's. For example, OpenOCD lacks the SWD line reset sequence before reading the `IDCODE` registers.
-
+> pyOCD is now supported.
 
 ### System OTA
 
@@ -429,6 +455,14 @@ For example, sending the ASCII text `115200` will switch the baud rate to 115200
 
 For performance reasons, this feature is not enabled by default. You can modify [wifi_configuration.h](main/wifi_configuration.h) to turn it on.
 
+
+### elaphure-dap.js
+
+For the ESP8266, this feature is turned off by default. You can turn it on in menuconfig:
+
+```
+CONFIG_USE_WEBSOCKET_DAP=y
+```
 
 ----
 

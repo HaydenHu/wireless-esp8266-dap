@@ -16,7 +16,9 @@
 #include "components/DAP/include/cmsis_compiler.h"
 #include "components/DAP/include/gpio_common.h"
 
-
+#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32C3)
+#include "hal/cpu_ll.h"
+#endif
 
 #ifdef CONFIG_IDF_TARGET_ESP8266
 __STATIC_INLINE __UNUSED void GPIO_FUNCTION_SET(int io_num)
@@ -53,6 +55,11 @@ __STATIC_INLINE __UNUSED void GPIO_FUNCTION_SET(int io_num)
   }
   PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[io_num], PIN_FUNC_GPIO);
 }
+#elif defined CONFIG_IDF_TARGET_ESP32S3
+__STATIC_INLINE __UNUSED void GPIO_FUNCTION_SET(int io_num)
+{
+  gpio_ll_iomux_func_sel(GPIO_PIN_MUX_REG[io_num], PIN_FUNC_GPIO);
+}
 #endif
 
 
@@ -77,6 +84,13 @@ __STATIC_INLINE __UNUSED void GPIO_SET_DIRECTION_NORMAL_OUT(int io_num)
     // PP out
     GPIO.pin[io_num].pad_driver = 0;
 }
+#elif defined CONFIG_IDF_TARGET_ESP32S3
+__STATIC_INLINE __UNUSED void GPIO_SET_DIRECTION_NORMAL_OUT(int io_num)
+{
+    gpio_ll_output_enable(&GPIO, io_num);
+    // PP out
+    gpio_ll_od_disable(&GPIO, io_num);
+}
 #endif
 
 
@@ -90,7 +104,7 @@ __STATIC_INLINE __UNUSED void GPIO_SET_LEVEL_LOW(int io_num)
 {
   GPIO.out_w1tc |= (0x1 << io_num);
 }
-#elif defined CONFIG_IDF_TARGET_ESP32C3
+#elif defined CONFIG_IDF_TARGET_ESP32C3 || defined CONFIG_IDF_TARGET_ESP32S3
 __STATIC_INLINE __UNUSED void GPIO_SET_LEVEL_HIGH(int io_num)
 {
   gpio_ll_set_level(&GPIO, io_num, 1);
@@ -107,15 +121,12 @@ __STATIC_INLINE __UNUSED int GPIO_GET_LEVEL(int io_num)
 {
   return ((GPIO.in >> io_num) & 0x1) ? 1 : 0;
 }
-#elif defined CONFIG_IDF_TARGET_ESP32C3
+#elif defined CONFIG_IDF_TARGET_ESP32C3 || defined CONFIG_IDF_TARGET_ESP32S3
 __STATIC_INLINE __UNUSED int GPIO_GET_LEVEL(int io_num)
 {
   return gpio_ll_get_level(&GPIO, io_num);
 }
 #endif
-
-
-
 
 #if defined CONFIG_IDF_TARGET_ESP32 || defined CONFIG_IDF_TARGET_ESP32C3
 __STATIC_INLINE __UNUSED void GPIO_PULL_UP_ONLY_SET(int io_num)
@@ -124,6 +135,14 @@ __STATIC_INLINE __UNUSED void GPIO_PULL_UP_ONLY_SET(int io_num)
   REG_CLR_BIT(GPIO_PIN_MUX_REG[io_num], FUN_PD);
   // enable pull up
   REG_SET_BIT(GPIO_PIN_MUX_REG[io_num], FUN_PU);
+}
+#elif defined CONFIG_IDF_TARGET_ESP32S3
+__STATIC_INLINE __UNUSED void GPIO_PULL_UP_ONLY_SET(int io_num)
+{
+  // disable pull down
+  gpio_ll_pulldown_dis(&GPIO, io_num);
+  // enable pull up
+  gpio_ll_pullup_en(&GPIO, io_num);
 }
 #elif defined CONFIG_IDF_TARGET_ESP8266
 __STATIC_INLINE __UNUSED void GPIO_PULL_UP_ONLY_SET(int io_num)
@@ -136,12 +155,26 @@ __STATIC_INLINE __UNUSED void GPIO_PULL_UP_ONLY_SET(int io_num)
 }
 #endif
 
-
-// static void GPIO_SET_DIRECTION_NORMAL_IN(int io_num)
-// {
-//   GPIO.enable_w1tc |= (0x1 << io_num);
-// }
-
-
+#if defined CONFIG_IDF_TARGET_ESP32S3
+#define SWCLK_SET() do { asm volatile("ee.set_bit_gpio_out 0x2"); } while (0)
+#define SWCLK_CLR() do { asm volatile("ee.clr_bit_gpio_out 0x2"); } while (0)
+#define SWDIO_SET() do { asm volatile("ee.set_bit_gpio_out 0x1"); } while (0)
+#define SWDIO_CLR() do { asm volatile("ee.clr_bit_gpio_out 0x1"); } while (0)
+#define SWDIO_GET_IN() \
+  ({ \
+    cpu_ll_read_dedic_gpio_in() & 0x1; \
+  })
+#elif defined CONFIG_IDF_TARGET_ESP32C3
+#define SWCLK_SET() do { RV_SET_CSR(CSR_GPIO_OUT_USER, 2); } while(0)
+#define SWCLK_CLR() do { RV_CLEAR_CSR(CSR_GPIO_OUT_USER, 2); } while(0)
+#define SWDIO_SET() do { RV_SET_CSR(CSR_GPIO_OUT_USER, 1); } while (0)
+#define SWDIO_CLR() do { RV_CLEAR_CSR(CSR_GPIO_OUT_USER, 1); } while (0)
+#define SWDIO_GET_IN() \
+  ({ \
+    RV_READ_CSR(CSR_GPIO_IN_USER) & 0x1; \
+  })
+#define SWDIO_OUT_ENABLE() do { RV_SET_CSR(CSR_GPIO_OEN_USER, 1); } while(0)
+#define SWDIO_OUT_DISABLE() do { RV_CLEAR_CSR(CSR_GPIO_OEN_USER, 1);} while(0)
+#endif
 
 #endif
